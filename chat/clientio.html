@@ -1,0 +1,129 @@
+<html>
+<head>
+    <link href="style.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: 'border-box'; }
+        body { font: 13px Helvetica, Arial; }
+        //#messages { margin-bottom: 4%; }
+		#send-message { background: #000; padding: 3px; position: fixed; bottom: 0; }
+        #send-message input { border: 0; padding: 10px; width: 85%; }
+        #send-message button {  background: rgb(130, 224, 255); border: none; padding: 8px; }
+        #incomingChatMessages { list-style-type: none; margin: 0; padding: 0; }
+        //#incomingChatMessages li { padding: 5px 10px; }
+        //#incomingChatMessages li:nth-child(odd) { background: #eee; }
+        #lines p { padding: 5px 10px; }
+        #lines p:nth-child(odd) { background: #eee; }
+		.nickname-set #nickname { display: none }
+    </style>
+    <script src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+		// socket.io specific code
+		//var socket = io.connect('http://localhost:8000');
+		var socket = io();
+      
+		socket.on('connect', function () {
+			$('#chat').addClass('connected');
+		});
+      
+		socket.on('announcement', function (msg) {
+			$('#lines').append($('<p>').append($('<em>').text(msg)));
+		});
+      
+		socket.on('nicknames', function (nicknames) {
+			$('#nicknames').empty().append($('<span>You: <b>'+$('#nick').val()+'</b></span><span>&emsp;Online: </span>'));
+			for (var i in nicknames) {
+			if(nicknames[i]!=$('#nick').val())
+				$('#nicknames').append($('<b>').text(nicknames[i]+', '));
+			}
+		});
+      
+		socket.on('user typing', function (user) {
+			$('#usertype').empty('');
+			$('#usertype').append($('<p>').text(user + ' Typing...'));
+			setTimeout(function() { $('#usertype').empty(''); }, 2000);
+		});
+		socket.on('user message', message);
+		socket.on('reconnect', function () {
+			$('#lines').remove();
+			message('System', 'Reconnected to the server');
+		});
+      
+		socket.on('reconnecting', function () {
+			message('System', 'Attempting to re-connect to the server');
+		});
+      
+		socket.on('error', function (e) {
+			message('System', e ? e : 'A unknown error occurred');
+		});
+      
+		function message (from, msg) {
+			$('#lines').append($('<p>').append($('<b>').text(from+': '), msg));
+			var lineDiv = $('#lines');
+			lineDiv.animate({scrollTop: lineDiv.prop('scrollHeight')-lineDiv.height()},5);
+		}
+      
+		// dom manipulation
+		$(function () {
+			$('#set-nickname').submit(function (ev) {
+				if($('#nick').val()=='') {
+					$('#nickname-err').innerHTML('Nick name empty, Please set a Nick name');
+					$('#nickname-err').css('visibility','visible');
+					return false;
+				}
+				socket.emit('nickname', $('#nick').val(), function (set) {
+					if (!set) {
+						$('#send-message').css('visibility','visible');
+						clear();
+						return $('#chat').addClass('nickname-set');
+					}
+					$('#nickname-err').css('visibility', 'visible');
+				});
+				return false;
+			});
+        
+			$('#send-message').submit(function () {
+				if($('#message').val()=='') return false;
+				message('me', $('#message').val());
+				socket.emit('user message', $('#message').val());
+				clear();
+				//$('#lines').get(0).scrollTop = 10000000;
+				var lineDiv = $('#lines');
+				lineDiv.animate({scrollTop: lineDiv.prop('scrollHeight')-lineDiv.height()},5);
+				return false;
+			});
+        
+			$('#message').keypress(function() {
+				socket.emit('user typing', $('#nick').val());
+			});
+		
+			function clear () {
+				$('#message').val('').focus();
+			};
+		});
+    </script>
+</head>
+<body style="max-width:400px; border:1px solid">
+    <div id="chat">
+      <div id="nickname">
+        <form id="set-nickname" class="wrap">
+          <p>Please type in your nickname and press enter.</p>
+          <input id="nick">
+          <p id="nickname-err" style="visibility:hidden;">Nickname already in use</p>
+        </form>
+      </div>
+      <!--<div id="connecting">
+        <div class="wrap">Connecting to server</div>
+      </div>-->
+      <div id="messages">
+        <div id="nicknames"></div>
+        <div id="lines" style="height:450px; overflow-y:auto;"></div>
+        <div id="usertype" style='height:20px;'></div>
+      </div>
+      <form id="send-message" style="visibility:hidden; width:400px;">
+        <input id="message" autocomplete="off">
+        <button>Send</button>
+      </form>
+    </div>
+  </body>
+</html>

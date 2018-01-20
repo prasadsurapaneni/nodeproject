@@ -1,0 +1,62 @@
+<html>
+<head>
+    <title>ChatApp</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: 'border-box'; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #incomingChatMessages { list-style-type: none; margin: 0; padding: 0; }
+      #incomingChatMessages li { padding: 5px 10px; }
+      #incomingChatMessages li:nth-child(odd) { background: #eee; }
+    </style>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        $(function(){
+            var socket = io();
+		$('#outgoingChatMessage').keypress(function(event){
+			if(event.which==13) {
+				event.preventDefault();
+				socket.emit('message',$('#outgoingChatMessage').val() );
+				$('#outgoingChatMessage').val('');
+				return false;
+			}
+		});
+		socket.on('message', function(msg){
+			$('#incomingChatMessages').append($('<li>').text(msg));
+		});		
+
+
+	    /*var iosocket = io.connect();
+            iosocket.on('connect', function () {
+                $('#incomingChatMessages').append($('<li>Connected</li>'));
+                iosocket.on('message', function(message) {
+                    $('#incomingChatMessages').append($('<li></li>').text(message));
+                });
+                iosocket.on('disconnect', function() {
+                    $('#incomingChatMessages').append('<li>Disconnected</li>');
+                });
+            });
+            $('#outgoingChatMessage').keypress(function(event) {
+                if(event.which == 13) {
+                    event.preventDefault();
+                    iosocket.send($('#outgoingChatMessage').val());
+                    $('#incomingChatMessages').append($('<li></li>').text($('#outgoingChatMessage').val()));
+                    $('#outgoingChatMessage').val('');
+                }
+            });*/
+        });
+    </script>
+</head>
+<body>
+<ul id="incomingChatMessages"></ul>
+<br />
+<form>
+<input type="text" id="outgoingChatMessage">
+</form>
+</body>
+</html>
+
+
